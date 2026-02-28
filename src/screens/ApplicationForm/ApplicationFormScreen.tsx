@@ -7,10 +7,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Keyboard,
   Modal,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -182,7 +182,8 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
               <Image
                 source={{ uri: job.companyLogo }}
                 style={styles.jobLogo}
-                resizeMode="contain"
+                contentFit="contain"
+                cachePolicy="memory-disk"
               />
             ) : (
               <View style={styles.jobLogoFallback}>

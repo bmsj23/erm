@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useJobs } from "../../contexts/JobsContext";
@@ -86,7 +87,8 @@ const JobCard: React.FC<JobCardProps> = React.memo(
                 <Image
                   source={{ uri: job.companyLogo }}
                   style={styles.logo}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
                   onError={() => setImgError(true)}
                 />
               ) : (

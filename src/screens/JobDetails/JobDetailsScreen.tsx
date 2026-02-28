@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -142,7 +143,8 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               <Image
                 source={{ uri: job.companyLogo }}
                 style={styles.logoLarge}
-                resizeMode="contain"
+                contentFit="contain"
+                cachePolicy="memory-disk"
               />
             ) : (
               <View style={styles.logoFallbackLarge}>
