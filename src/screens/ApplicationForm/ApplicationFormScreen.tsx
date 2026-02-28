@@ -9,6 +9,7 @@ import {
   Platform,
   Image,
   Keyboard,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -88,9 +89,7 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
 
     if (!data.whyHireYou.trim()) {
       errors.whyHireYou = "This field is required";
-    } else if (data.whyHireYou.trim().length < 50) {
-      errors.whyHireYou = `Minimum 50 characters (${data.whyHireYou.trim().length}/50)`;
-    }
+    } 
 
     return errors;
   }, []);
@@ -128,6 +127,13 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     setIsSubmitting(false);
+    setFormData({ name: "", email: "", contactNumber: "", whyHireYou: "" });
+    setTouched({
+      name: false,
+      email: false,
+      contactNumber: false,
+      whyHireYou: false,
+    });
     setShowSuccess(true);
     showToast({
       message: "Application submitted successfully",
@@ -137,13 +143,6 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSuccessDismiss = useCallback(() => {
     setShowSuccess(false);
-    setFormData({ name: "", email: "", contactNumber: "", whyHireYou: "" });
-    setTouched({
-      name: false,
-      email: false,
-      contactNumber: false,
-      whyHireYou: false,
-    });
 
     // pop the native modal and all intermediate screens back to root
     navigation.popToTop();
@@ -310,27 +309,29 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
         </TouchableOpacity>
       </ScrollView>
 
-      {showSuccess ? (
-        <View style={styles.successOverlay}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.successIconContainer}>
-                <Ionicons name="checkmark" size={48} color="#FFFFFF" />
-              </View>
-              <Text style={styles.modalTitle}>Application Sent!</Text>
-              <Text style={styles.modalMessage}>
-                Your application for <Text style={styles.boldText}>{job.title}</Text> at <Text style={styles.boldText}>{job.companyName}</Text> has been submitted successfully.
-              </Text>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={handleSuccessDismiss}
-                activeOpacity={0.8}>
-                <Text style={styles.modalButtonText}>Okay</Text>
-              </TouchableOpacity>
+      <Modal
+        visible={showSuccess}
+        transparent
+        animationType="fade"
+        statusBarTranslucent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark" size={48} color="#FFFFFF" />
             </View>
+            <Text style={styles.modalTitle}>Application Sent!</Text>
+            <Text style={styles.modalMessage}>
+              Your application for <Text style={styles.boldText}>{job.title}</Text> at <Text style={styles.boldText}>{job.companyName}</Text> has been submitted successfully.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleSuccessDismiss}
+              activeOpacity={0.8}>
+              <Text style={styles.modalButtonText}>Okay</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      ) : null}
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
