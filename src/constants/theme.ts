@@ -18,9 +18,9 @@ export interface ThemeColors {
 }
 
 export const lightColors: ThemeColors = {
-  primary: "#16A34A",
-  primaryLight: "#DCFCE7",
-  primaryDark: "#15803D",
+  primary: "#1A4F36",
+  primaryLight: "#E8F2EC",
+  primaryDark: "#143D2A",
   background: "#F8FAFC",
   surface: "#FFFFFF",
   surfaceElevated: "#FFFFFF",
@@ -37,19 +37,19 @@ export const lightColors: ThemeColors = {
 };
 
 export const darkColors: ThemeColors = {
-  primary: "#22C55E",
-  primaryLight: "#14532D",
-  primaryDark: "#4ADE80",
-  background: "#0F172A",
-  surface: "#1E293B",
-  surfaceElevated: "#334155",
+  primary: "#10B981",
+  primaryLight: "#14352A",
+  primaryDark: "#34D399",
+  background: "#000000",
+  surface: "#1C1C1E",
+  surfaceElevated: "#2C2C2E",
   text: "#F8FAFC",
   textSecondary: "#94A3B8",
   textTertiary: "#64748B",
-  border: "#334155",
-  borderLight: "#1E293B",
+  border: "#38383A",
+  borderLight: "#1C1C1E",
   accent: "#FBBF24",
-  success: "#34D399",
+  success: "#10B981",
   error: "#F87171",
   warning: "#FBBF24",
   shadow: "rgba(0, 0, 0, 0.35)",

@@ -1,15 +1,17 @@
 import React, { useMemo, useCallback, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, LayoutAnimation, Platform, UIManager, RefreshControl, Alert } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, LayoutAnimation, Platform, UIManager, RefreshControl, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../../contexts/ThemeContext";
 import { useJobs } from "../../contexts/JobsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { SavedStackParamList } from "../../navigation/AppNavigator";
 import EmptyState from "../../components/EmptyState";
+import JobCard from "../../components/JobCard/JobCard";
 import { Job } from "../../types/job";
 import { createStyles } from "./SavedJobsScreen.styles";
+import { getPalette } from "../JobFinder/JobFinderScreen.styles";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -18,11 +20,12 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 type Props = NativeStackScreenProps<SavedStackParamList, "SavedJobs">;
 
 const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
-  const { colors } = useTheme();
   const { savedJobs, removeJob, removeAllJobs, loadSavedJobs } = useJobs();
+  const { isDarkMode } = useTheme();
+  const p = getPalette(isDarkMode);
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(colors, insets.top), [colors, insets.top]);
+  const styles = useMemo(() => createStyles(insets.top, p), [insets.top, p]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleJobPress = useCallback(
@@ -30,35 +33,6 @@ const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate("JobDetails", { job, fromSavedJobs: true });
     },
     [navigation],
-  );
-
-  const handleApply = useCallback(
-    (job: Job) => {
-      navigation.navigate("ApplicationForm", { job, fromSavedJobs: true });
-    },
-    [navigation],
-  );
-
-  const handleRemove = useCallback(
-    (guid: string) => {
-      Alert.alert(
-        "Remove Job",
-        "Are you sure you want to remove this saved job?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Remove",
-            style: "destructive",
-            onPress: () => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              removeJob(guid);
-              showToast({ message: "Job removed from saved", type: "info" });
-            },
-          },
-        ],
-      );
-    },
-    [removeJob, showToast],
   );
 
   const handleDeleteAll = useCallback(() => {
@@ -86,118 +60,48 @@ const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
     setIsRefreshing(false);
   }, [loadSavedJobs]);
 
-  const formatSalary = (min: number, max: number, currency: string) => {
-    if (!min && !max) return null;
-    const fmt = (n: number) => {
-      if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
-      return n.toString();
-    };
-    if (min && max) return `${currency} ${fmt(min)} - ${fmt(max)}`;
-    if (min) return `From ${currency} ${fmt(min)}`;
-    return `Up to ${currency} ${fmt(max)}`;
-  };
+  const handleRemove = useCallback(
+    (job: Job) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      removeJob(job.guid);
+      showToast({ message: "Job removed", type: "info" });
+    },
+    [removeJob, showToast],
+  );
 
   const renderItem = useCallback(
-    ({ item }: { item: Job }) => {
-      const salary = formatSalary(item.minSalary, item.maxSalary, item.currency);
-      return (
-        <TouchableOpacity
-          style={styles.savedCard}
-          onPress={() => handleJobPress(item)}
-          activeOpacity={0.7}>
-          <View style={styles.cardContent}>
-            <View style={styles.header}>
-              {item.companyLogo ? (
-                <View style={styles.logoContainer}>
-                  <Image
-                    source={{ uri: item.companyLogo }}
-                    style={styles.logo}
-                    resizeMode="contain"
-                  />
-                </View>
-              ) : (
-                <View style={styles.logoFallback}>
-                  <Text style={styles.logoFallbackText}>
-                    {item.companyName?.charAt(0)?.toUpperCase() || "?"}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.headerInfo}>
-                <Text style={styles.title} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.company} numberOfLines={1}>
-                  {item.companyName}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => handleRemove(item.guid)}
-                activeOpacity={0.6}>
-                <Ionicons name="trash" size={20} color={colors.error} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.metaRow}>
-              {item.jobType ? (
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>{item.jobType}</Text>
-                </View>
-              ) : null}
-              {item.workModel ? (
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>{item.workModel}</Text>
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.footer}>
-              <View style={styles.footerLeft}>
-                <TouchableOpacity
-                  style={styles.applyButton}
-                  onPress={() => handleApply(item)}
-                  activeOpacity={0.6}>
-                  <Text style={styles.applyText}>Apply Now</Text>
-                </TouchableOpacity>
-              </View>
-              {salary ? (
-                <View style={styles.salaryContainer}>
-                  <Text style={styles.salary}>{salary}</Text>
-                  <Text style={styles.salaryPeriod}>/month</Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </TouchableOpacity>
-      );
-    },
-    [styles, colors, handleJobPress, handleApply, handleRemove],
+    ({ item }: { item: Job }) => (
+      <JobCard
+        job={item}
+        onPress={() => handleJobPress(item)}
+        onDelete={() => handleRemove(item)}
+      />
+    ),
+    [handleJobPress, handleRemove],
   );
 
   const keyExtractor = useCallback((item: Job) => item.id, []);
 
   const renderHeader = () => (
-    <>
-      <View style={{ position: 'absolute', top: -1000, left: 0, right: 0, height: 1000, backgroundColor: colors.primary }} />
-      <View style={styles.headerContainer}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Saved Jobs</Text>
-            <Text style={styles.headerSubtitle}>
-              {savedJobs.length} {savedJobs.length === 1 ? "job" : "jobs"} saved
-            </Text>
-          </View>
-          {savedJobs.length > 0 ? (
-            <TouchableOpacity
-              style={styles.deleteAllButton}
-              onPress={handleDeleteAll}
-              activeOpacity={0.7}>
-              <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+    <View style={styles.headerContainer}>
+      <View style={styles.headerTop}>
+        <Text style={styles.headerTitle}>
+          Saved <Text style={styles.headerTitleAccent}>Jobs</Text>
+        </Text>
+        {savedJobs.length >= 2 ? (
+          <TouchableOpacity
+            style={styles.deleteAllButton}
+            onPress={handleDeleteAll}
+            activeOpacity={0.7}>
+            <Ionicons name="trash-outline" size={14} color="#EF4444" />
+            <Text style={styles.deleteAllText}>Delete All</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
-    </>
+      <Text style={styles.headerSubtitle}>
+        {savedJobs.length} {savedJobs.length === 1 ? "job" : "jobs"} saved
+      </Text>
+    </View>
   );
 
   return (
@@ -211,6 +115,11 @@ const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
           styles.listContent,
           savedJobs.length === 0 && { flex: 1 },
         ]}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={100}
+        windowSize={5}
+        initialNumToRender={6}
         ListEmptyComponent={
           <EmptyState
             icon="bookmark-outline"
@@ -222,8 +131,8 @@ const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor="#FFFFFF"
-            colors={[colors.primary]}
+            tintColor={p.deepGreen}
+            colors={[p.deepGreen]}
           />
         }
         showsVerticalScrollIndicator={false}

@@ -44,6 +44,8 @@ export const createStyles = (colors: ThemeColors) =>
       fontWeight: fontWeight.medium,
     },
     listContent: {
+      paddingHorizontal: 22,
       paddingBottom: spacing.xxxl,
+      gap: 12,
     },
   });

@@ -59,13 +59,6 @@ const SearchScreen: React.FC<Props> = ({ navigation }) => {
     [navigation],
   );
 
-  const handleApply = useCallback(
-    (job: Job) => {
-      navigation.navigate("ApplicationForm", { job, fromSavedJobs: false });
-    },
-    [navigation],
-  );
-
   const handleClear = useCallback(() => {
     setQuery("");
     setDebouncedQuery("");
@@ -74,13 +67,9 @@ const SearchScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderItem = useCallback(
     ({ item }: { item: Job }) => (
-      <JobCard
-        job={item}
-        onPress={() => handleJobPress(item)}
-        onApply={() => handleApply(item)}
-      />
+      <JobCard job={item} onPress={() => handleJobPress(item)} />
     ),
-    [handleJobPress, handleApply],
+    [handleJobPress],
   );
 
   const keyExtractor = useCallback((item: Job) => item.id, []);
@@ -132,6 +121,11 @@ const SearchScreen: React.FC<Props> = ({ navigation }) => {
           styles.listContent,
           filteredJobs.length === 0 && { flex: 1 },
         ]}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={100}
+        windowSize={5}
+        initialNumToRender={6}
         ListEmptyComponent={
           debouncedQuery.trim().length > 0 ? (
             <EmptyState

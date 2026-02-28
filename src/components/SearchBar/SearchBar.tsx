@@ -6,11 +6,9 @@ import { createStyles } from "./SearchBar.styles";
 
 interface SearchBarProps {
   onPress: () => void;
-  onFilterPress?: () => void;
-  filterLabel?: string;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onPress, onFilterPress, filterLabel = "All" }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ onPress }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -24,13 +22,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ onPress, onFilterPress, filterLab
           <Ionicons name="search" size={20} color={colors.primary} />
         </View>
         <Text style={styles.text}>Search jobs, companies...</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.filterButton}
-        onPress={onFilterPress}
-        activeOpacity={0.7}>
-        <Ionicons name="options" size={16} color="#FFFFFF" />
-        <Text style={styles.filterButtonText}>{filterLabel}</Text>
       </TouchableOpacity>
     </View>
   );

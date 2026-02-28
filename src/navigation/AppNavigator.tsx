@@ -110,7 +110,7 @@ function SavedStackNavigator() {
       <SavedStack.Screen
         name="JobDetails"
         component={JobDetailsScreen}
-        options={{ title: "Job Details" }}
+        options={{ title: "Job Details", headerBackTitle: "Saved" }}
       />
       <SavedStack.Screen
         name="ApplicationForm"
@@ -159,7 +159,7 @@ const AppNavigator = () => {
             paddingTop: 8,
             elevation: 0,
           },
-          tabBarActiveTintColor: colors.primary,
+          tabBarActiveTintColor: isDarkMode ? "#10B981" : "#1A4F36",
           tabBarInactiveTintColor: colors.textTertiary,
           tabBarLabelStyle: {
             fontSize: fontSize.xs,
@@ -185,7 +185,7 @@ const AppNavigator = () => {
             ),
             tabBarBadge: savedJobs.length > 0 ? savedJobs.length : undefined,
             tabBarBadgeStyle: {
-              backgroundColor: colors.primary,
+              backgroundColor: isDarkMode ? "#10B981" : "#1A4F36",
               color: "#FFFFFF",
             },
           }}

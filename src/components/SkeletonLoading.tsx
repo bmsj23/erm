@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { View, Animated, StyleSheet } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import { spacing, borderRadius } from "../constants/theme";
 
 const SkeletonItem = () => {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -29,28 +28,30 @@ const SkeletonItem = () => {
     outputRange: [0.3, 0.7],
   });
 
-  const backgroundColor = colors.border;
+  const bg = colors.border;
+  const topBg = isDarkMode ? colors.surfaceElevated : "#F4F6F9";
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surfaceElevated }]}>
-      <View style={styles.header}>
-        <Animated.View style={[styles.logo, { backgroundColor, opacity }]} />
-        <View style={styles.headerText}>
-          <Animated.View style={[styles.title, { backgroundColor, opacity }]} />
-          <Animated.View style={[styles.company, { backgroundColor, opacity }]} />
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <View style={[styles.topSection, { backgroundColor: topBg }]}>
+        <View style={styles.topLeft}>
+          <Animated.View style={[styles.logo, { backgroundColor: bg, opacity }]} />
+          <Animated.View style={[styles.companyLine, { backgroundColor: bg, opacity }]} />
         </View>
-        <Animated.View style={[styles.bookmark, { backgroundColor, opacity }]} />
+        <Animated.View style={[styles.bookmark, { backgroundColor: bg, opacity }]} />
       </View>
-
-      <View style={styles.tags}>
-        <Animated.View style={[styles.tag, { backgroundColor, opacity, width: 80 }]} />
-        <Animated.View style={[styles.tag, { backgroundColor, opacity, width: 100 }]} />
-        <Animated.View style={[styles.tag, { backgroundColor, opacity, width: 60 }]} />
-      </View>
-
-      <View style={styles.footer}>
-        <Animated.View style={[styles.salary, { backgroundColor, opacity }]} />
-        <Animated.View style={[styles.button, { backgroundColor, opacity }]} />
+      <View style={styles.bottomSection}>
+        <Animated.View style={[styles.chipLine, { backgroundColor: bg, opacity }]} />
+        <Animated.View style={[styles.titleLine, { backgroundColor: bg, opacity }]} />
+        <Animated.View style={[styles.metaLine, { backgroundColor: bg, opacity }]} />
+        <View style={styles.footerRow}>
+          <View style={styles.tagsRow}>
+            <Animated.View style={[styles.tag, { backgroundColor: bg, opacity, width: 56 }]} />
+            <Animated.View style={[styles.tag, { backgroundColor: bg, opacity, width: 64 }]} />
+            <Animated.View style={[styles.tag, { backgroundColor: bg, opacity, width: 48 }]} />
+          </View>
+          <Animated.View style={[styles.salaryBlock, { backgroundColor: bg, opacity }]} />
+        </View>
       </View>
     </View>
   );
@@ -63,78 +64,84 @@ const SkeletonLoading = () => {
       <SkeletonItem />
       <SkeletonItem />
       <SkeletonItem />
+      <SkeletonItem />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: spacing.lg,
+    paddingHorizontal: 22,
+    gap: 12,
   },
   card: {
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.lg,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 16,
+    overflow: "hidden",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
-    marginRight: spacing.md,
-  },
-  headerText: {
-    flex: 1,
-  },
-  title: {
-    height: 20,
-    width: "80%",
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.xs,
-  },
-  company: {
-    height: 16,
-    width: "50%",
-    borderRadius: borderRadius.sm,
-  },
-  bookmark: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    marginLeft: spacing.md,
-  },
-  tags: {
-    flexDirection: "row",
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  tag: {
-    height: 28,
-    borderRadius: borderRadius.full,
-  },
-  footer: {
+  topSection: {
+    padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  salary: {
-    height: 20,
-    width: 100,
-    borderRadius: borderRadius.sm,
+  topLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  button: {
+  logo: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+  },
+  companyLine: {
+    height: 14,
+    width: 90,
+    borderRadius: 4,
+  },
+  bookmark: {
+    width: 36,
     height: 36,
-    width: 100,
-    borderRadius: borderRadius.full,
+    borderRadius: 18,
+  },
+  bottomSection: {
+    padding: 16,
+  },
+  chipLine: {
+    height: 20,
+    width: 60,
+    borderRadius: 999,
+    marginBottom: 8,
+  },
+  titleLine: {
+    height: 18,
+    width: "70%",
+    borderRadius: 6,
+  },
+  metaLine: {
+    height: 12,
+    width: "50%",
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 16,
+  },
+  tagsRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  tag: {
+    height: 24,
+    borderRadius: 6,
+  },
+  salaryBlock: {
+    height: 20,
+    width: 72,
+    borderRadius: 4,
   },
 });
 

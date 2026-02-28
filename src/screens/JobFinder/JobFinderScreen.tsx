@@ -13,6 +13,7 @@ import { useScrollToTop } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useJobs } from "../../contexts/JobsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { JobsStackParamList } from "../../navigation/AppNavigator";
 import SkeletonLoading from "../../components/SkeletonLoading";
 import EmptyState from "../../components/EmptyState";
@@ -20,27 +21,21 @@ import ThemeToggle from "../../components/ThemeToggle";
 import { Job } from "../../types/job";
 import {
   createStyles,
-  PALETTE,
-  getCardBgColor,
-  formatSalary,
+  getPalette,
 } from "./JobFinderScreen.styles";
+import JobCard from "../../components/JobCard/JobCard";
 
 type Props = NativeStackScreenProps<JobsStackParamList, "Find">;
 
-// filter definitions — each has a key and display label
-type FilterKey = "all" | "remote" | "hybrid" | "onsite" | "tech" | "executive" | "parttime";
+type FilterKey = "all" | "remote" | "hybrid" | "onsite";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All Jobs" },
   { key: "remote", label: "Remote" },
   { key: "hybrid", label: "Hybrid" },
   { key: "onsite", label: "On-Site" },
-  { key: "tech", label: "Tech" },
-  { key: "executive", label: "Executive" },
-  { key: "parttime", label: "Part-Time" },
 ];
 
-// greeting based on time of day
 const getGreeting = () => {
   const h = new Date().getHours();
   if (h < 12) return "Good morning.";
@@ -48,108 +43,12 @@ const getGreeting = () => {
   return "Good evening.";
 };
 
-// individual airbnb-style card
-interface AirbnbCardProps {
-  job: Job;
-  onPress: () => void;
-  onSave: () => void;
-  onApply: () => void;
-  isSaved: boolean;
-  styles: ReturnType<typeof createStyles>;
-}
-
-const AirbnbCard: React.FC<AirbnbCardProps> = React.memo(
-  ({ job, onPress, onSave, styles, isSaved }) => {
-    const [imgError, setImgError] = useState(false);
-    const heroBg = getCardBgColor(job.companyName || job.id);
-    const salary = formatSalary(job.minSalary, job.maxSalary, job.currency || "USD");
-    const location = job.locations?.[0] ?? "—";
-    const workLabel = job.workModel || "";
-    const visibleTags = (job.tags ?? []).slice(0, 2);
-
-    return (
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.97}
-        onPress={onPress}>
-        {/* hero section */}
-        <View style={[styles.cardHero, { backgroundColor: heroBg }]}>
-          <View style={styles.cardLogoBox}>
-            {job.companyLogo && !imgError ? (
-              <Image
-                source={{ uri: job.companyLogo }}
-                style={styles.cardLogo}
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <Text style={styles.cardLogoFallbackText}>
-                {(job.companyName ?? "?").charAt(0).toUpperCase()}
-              </Text>
-            )}
-          </View>
-
-          {!!workLabel && (
-            <View style={styles.cardWorkBadge}>
-              <Text style={styles.cardWorkBadgeText}>{workLabel}</Text>
-            </View>
-          )}
-
-          {/* bookmark / heart */}
-          <TouchableOpacity
-            style={styles.cardBookmark}
-            onPress={onSave}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.85}>
-            <Ionicons
-              name={isSaved ? "heart" : "heart-outline"}
-              size={18}
-              color={isSaved ? "#EF4444" : PALETTE.slate}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* card body */}
-        <View style={styles.cardBody}>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {job.title}
-          </Text>
-
-          <View style={styles.cardMetaRow}>
-            <Text style={styles.cardCompany} numberOfLines={1}>
-              {job.companyName}
-            </Text>
-            <Text style={styles.cardMetaDivider}>·</Text>
-            <Text style={styles.cardLocation} numberOfLines={1}>
-              {location}
-            </Text>
-          </View>
-
-          <View style={styles.cardFooter}>
-            <View style={styles.cardTagsRow}>
-              {visibleTags.map((tag, i) => (
-                <View key={i} style={styles.cardTag}>
-                  <Text style={styles.cardTagText} numberOfLines={1}>
-                    {tag}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.cardSalaryWrap}>
-              <Text style={styles.cardSalary}>{salary}</Text>
-              <Text style={styles.cardSalaryUnit}>/ year</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  },
-);
-
 const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
-  const { jobs, isLoading, error, refreshJobs, isJobSaved, saveJob, removeJob } = useJobs();
+  const { jobs, isLoading, error, refreshJobs } = useJobs();
+  const { isDarkMode } = useTheme();
+  const p = getPalette(isDarkMode);
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(insets.top), [insets.top]);
+  const styles = useMemo(() => createStyles(insets.top, p), [insets.top, p]);
   const listRef = useRef<FlatList<Job>>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
 
@@ -176,19 +75,7 @@ const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
     [navigation],
   );
 
-  const handleApply = useCallback(
-    (job: Job) => navigation.navigate("ApplicationForm", { job, fromSavedJobs: false }),
-    [navigation],
-  );
-
   const handleSearch = useCallback(() => navigation.navigate("Search"), [navigation]);
-
-  const handleSaveToggle = useCallback(
-    (job: Job) => {
-      isJobSaved(job.id) ? removeJob(job.id) : saveJob(job);
-    },
-    [isJobSaved, saveJob, removeJob],
-  );
 
   const normalizeWM = (v: string) => v.toLowerCase().replace(/[\s-]/g, "");
 
@@ -203,23 +90,6 @@ const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
           const wm = normalizeWM(j.workModel || "");
           return wm.includes("onsite") || wm.includes("office");
         });
-      case "tech":
-        return jobs.filter((j) =>
-          (j.mainCategory || "").toLowerCase().includes("tech") ||
-          (j.mainCategory || "").toLowerCase().includes("engineer") ||
-          (j.mainCategory || "").toLowerCase().includes("develop") ||
-          (j.tags ?? []).some((t) => t.toLowerCase().includes("tech")),
-        );
-      case "executive":
-        return jobs.filter((j) =>
-          (j.seniorityLevel || "").toLowerCase().includes("exec") ||
-          (j.seniorityLevel || "").toLowerCase().includes("director") ||
-          (j.seniorityLevel || "").toLowerCase().includes("senior"),
-        );
-      case "parttime":
-        return jobs.filter((j) =>
-          (j.jobType || "").toLowerCase().includes("part"),
-        );
       default:
         return jobs;
     }
@@ -229,16 +99,9 @@ const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderItem = useCallback(
     ({ item }: { item: Job }) => (
-      <AirbnbCard
-        job={item}
-        onPress={() => handleJobPress(item)}
-        onSave={() => handleSaveToggle(item)}
-        onApply={() => handleApply(item)}
-        isSaved={isJobSaved(item.id)}
-        styles={styles}
-      />
+      <JobCard job={item} onPress={() => handleJobPress(item)} />
     ),
-    [handleJobPress, handleSaveToggle, handleApply, isJobSaved, styles],
+    [handleJobPress],
   );
 
   // sticky header rendered above the FlatList
@@ -259,21 +122,20 @@ const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* floating pill search bar */}
-        <TouchableOpacity
-          style={styles.searchPill}
-          onPress={handleSearch}
-          activeOpacity={0.95}>
-          <Ionicons
-            name="search-outline"
-            size={17}
-            color={PALETTE.cloudGray}
-            style={styles.searchIcon}
-          />
-          <Text style={styles.searchPlaceholder}>Where to next in your career?</Text>
-          <View style={styles.searchFilterDot}>
-            <Ionicons name="options-outline" size={16} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
+        <View style={styles.searchPill}>
+          <TouchableOpacity
+            style={styles.searchPillTouchArea}
+            onPress={handleSearch}
+            activeOpacity={0.95}>
+            <Ionicons
+              name="search-outline"
+              size={17}
+              color={p.cloudGray}
+              style={styles.searchIcon}
+            />
+            <Text style={styles.searchPlaceholder}>Where to next in your career?</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* filter pills */}
         <ScrollView
@@ -360,6 +222,11 @@ const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.listContent}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={100}
+        windowSize={5}
+        initialNumToRender={6}
         ListEmptyComponent={
           <EmptyState
             icon="briefcase-outline"
@@ -371,8 +238,8 @@ const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl
             refreshing={isLoading}
             onRefresh={refreshJobs}
-            tintColor={PALETTE.deepGreen}
-            colors={[PALETTE.deepGreen]}
+            tintColor={p.deepGreen}
+            colors={[p.deepGreen]}
           />
         }
       />

@@ -72,7 +72,8 @@ export const JobsProvider: React.FC<{ children: React.ReactNode }> = ({
     setSavedJobs((prev) => {
       const alreadySaved = prev.some((saved) => saved.guid === job.guid);
       if (alreadySaved) return prev;
-      const updated = [...prev, job];
+      // prepend so the latest saved job appears first
+      const updated = [job, ...prev];
       StorageService.saveSavedJobs(updated);
       return updated;
     });

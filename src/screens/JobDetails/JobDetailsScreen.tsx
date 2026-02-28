@@ -2,25 +2,32 @@ import React, { useMemo } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useTheme } from "../../contexts/ThemeContext";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobs } from "../../contexts/JobsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { JobsStackParamList } from "../../navigation/AppNavigator";
 import { createStyles } from "./JobDetailsScreen.styles";
+import { getPalette } from "../JobFinder/JobFinderScreen.styles";
 
 type Props = NativeStackScreenProps<JobsStackParamList, "JobDetails">;
 
 const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { job } = route.params;
   const fromSavedJobs = route.params.fromSavedJobs === true;
-  const { colors } = useTheme();
   const { saveJob, removeJob, isJobSaved } = useJobs();
+  const { isDarkMode } = useTheme();
   const { showToast } = useToast();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  const effectiveBottomInset = tabBarHeight > 0 ? 2 : (insets.bottom > 0 ? insets.bottom : 6);
+  const p = getPalette(isDarkMode);
+  const styles = useMemo(() => createStyles(p, effectiveBottomInset), [p, effectiveBottomInset]);
   const saved = isJobSaved(job.guid);
 
   const formatSalary = (min: number, max: number, currency: string) => {
-    if (!min && !max) return null;
+    if (!min && !max) return "Undisclosed";
     const fmt = (n: number) => n.toLocaleString();
     if (min && max) return `${currency} ${fmt(min)} - ${fmt(max)}`;
     if (min) return `From ${currency} ${fmt(min)}`;
@@ -33,7 +40,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleSave = () => {
     if (saved) {
       removeJob(job.guid);
-      showToast({ message: "Job removed from saved", type: "info" });
+      showToast({ message: "Job removed from saved jobs", type: "info" });
     } else {
       saveJob(job);
       showToast({ message: "Job saved successfully", type: "success" });
@@ -101,12 +108,35 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { description, requirements } = splitDescriptionAndRequirements(parsedDescription);
   const requirementItems = requirements.length > 0 ? requirements : job.tags;
 
+  // converts a string to title case for uniform chip casing
+  const toTitleCase = (str: string) =>
+    str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+
   return (
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
+          <View style={styles.heroTextGroup}>
+            <Text style={styles.companyLabel}>{job.companyName}</Text>
+            <Text style={styles.jobTitle} numberOfLines={2}>{job.title}</Text>
+            <View style={styles.heroMeta}>
+              {location ? (
+                <View style={styles.heroMetaItem}>
+                  <Ionicons name="location" size={16} color={p.deepGreen} />
+                  <Text style={styles.heroMetaText}>{location}</Text>
+                </View>
+              ) : null}
+              {job.mainCategory ? (
+                <View style={styles.heroMetaItem}>
+                  <Ionicons name="briefcase" size={16} color={p.deepGreen} />
+                  <Text style={styles.heroMetaText}>{job.mainCategory}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
           <View style={styles.logoWrapper}>
             {job.companyLogo ? (
               <Image
@@ -122,60 +152,29 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
           </View>
-          <Text style={styles.jobTitle}>{job.title}</Text>
-          <Text style={styles.companyName}>{job.companyName}</Text>
-
-          <View style={styles.heroMeta}>
-            {location ? (
-              <View style={styles.heroMetaItem}>
-                <Ionicons name="location" size={16} color={colors.primary} />
-                <Text style={styles.heroMetaText}>{location}</Text>
-              </View>
-            ) : null}
-            {job.mainCategory ? (
-              <View style={styles.heroMetaItem}>
-                <Ionicons name="briefcase" size={16} color={colors.primary} />
-                <Text style={styles.heroMetaText}>{job.mainCategory}</Text>
-              </View>
-            ) : null}
-          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Job Overview</Text>
           <View style={styles.detailsGrid}>
-            {salary ? (
-              <View style={styles.detailCard}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons name="cash" size={24} color={colors.primary} />
-                </View>
-                <Text style={styles.detailLabel}>Salary</Text>
-                <Text style={styles.salaryValue}>{salary}</Text>
-              </View>
-            ) : null}
+            <View style={styles.detailCard}>
+              <Text style={styles.detailLabel}>Salary</Text>
+              <Text style={styles.salaryValue}>{salary}</Text>
+            </View>
             {job.jobType ? (
               <View style={styles.detailCard}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons name="time" size={24} color={colors.primary} />
-                </View>
                 <Text style={styles.detailLabel}>Job Type</Text>
                 <Text style={styles.detailValue}>{job.jobType}</Text>
               </View>
             ) : null}
             {job.workModel ? (
               <View style={styles.detailCard}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons name="laptop" size={24} color={colors.primary} />
-                </View>
                 <Text style={styles.detailLabel}>Work Model</Text>
                 <Text style={styles.detailValue}>{job.workModel}</Text>
               </View>
             ) : null}
             {job.seniorityLevel ? (
               <View style={styles.detailCard}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons name="trophy" size={24} color={colors.primary} />
-                </View>
                 <Text style={styles.detailLabel}>Seniority</Text>
                 <Text style={styles.detailValue}>{job.seniorityLevel}</Text>
               </View>
@@ -189,7 +188,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.tagsContainer}>
               {job.tags.map((tag, index) => (
                 <View key={index} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
+                  <Text style={styles.tagText}>{toTitleCase(tag)}</Text>
                 </View>
               ))}
             </View>
@@ -203,43 +202,28 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.requirementsTitle}>Description</Text>
             <Text style={styles.descriptionText}>{description}</Text>
           </View>
-
-          <View style={styles.descriptionContainerSecondary}>
-            <Text style={styles.requirementsTitle}>Requirements</Text>
-            {requirementItems.length > 0 ? (
-              requirementItems.map((item, index) => (
-                <View key={`${item}-${index}`} style={styles.requirementRow}>
-                  <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-                  <Text style={styles.requirementText}>{item}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.descriptionText}>No explicit requirements listed.</Text>
-            )}
-          </View>
         </View>
       </ScrollView>
 
       <View style={styles.bottomBar}>
+        <TouchableOpacity
+          style={styles.applyButton}
+          onPress={handleApply}
+          activeOpacity={0.8}>
+          <Text style={styles.applyButtonText}>Apply for this job</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.saveButton, saved && styles.saveButtonSaved]}
           onPress={handleSave}
           activeOpacity={0.7}>
           <Ionicons
             name={saved ? "bookmark" : "bookmark-outline"}
-            size={20}
-            color={saved ? colors.primary : colors.textSecondary}
+            size={18}
+            color={saved ? p.deepGreen : p.slate}
           />
           <Text style={[styles.saveButtonText, saved && styles.saveButtonTextSaved]}>
             {saved ? "Saved" : "Save"}
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.applyButton}
-          onPress={handleApply}
-          activeOpacity={0.8}>
-          <Text style={styles.applyButtonText}>Apply for this job</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </View>
