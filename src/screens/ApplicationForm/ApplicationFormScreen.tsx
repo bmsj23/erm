@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,10 +12,11 @@ import {
   Keyboard,
   Modal,
   LayoutChangeEvent,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { CommonActions } from "@react-navigation/native";
+import { CommonActions, NavigationAction } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -88,6 +89,8 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const whyHireLength = normalizeEssay(formData.whyHireYou).length;
   const scrollViewRef = useRef<ScrollView>(null);
+  const pendingNavigationAction = useRef<NavigationAction | null>(null);
+  const bypassUnsavedChangesGuard = useRef(false);
   const fieldPositions = useRef<Record<FieldKey, number>>({
     name: 0,
     email: 0,
@@ -95,6 +98,15 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
     whyHireYou: 0,
   });
   const currentScrollY = useRef(0);
+
+  const hasUnsavedChanges = useMemo(
+    () =>
+      sanitizeName(formData.name).trim().length > 0 ||
+      sanitizeEmail(formData.email).length > 0 ||
+      sanitizeContactNumber(formData.contactNumber).length > 0 ||
+      normalizeEssay(formData.whyHireYou).length > 0,
+    [formData],
+  );
 
   const validate = useCallback((data: FormData): FormErrors => {
     const errors: FormErrors = {};
@@ -140,6 +152,54 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const errors = useMemo(() => validate(formData), [formData, validate]);
   const isValid = Object.keys(errors).length === 0;
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (event) => {
+      if (
+        bypassUnsavedChangesGuard.current ||
+        !hasUnsavedChanges ||
+        isSubmitting ||
+        showSuccess
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      pendingNavigationAction.current = event.data.action;
+      Alert.alert(
+        "Discard application?",
+        "You have unsaved changes in this form. Are you sure you want to close it?",
+        [
+          {
+            text: "Keep Editing",
+            style: "cancel",
+            onPress: () => {
+              pendingNavigationAction.current = null;
+            },
+          },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: () => {
+              bypassUnsavedChangesGuard.current = true;
+
+              const pendingAction = pendingNavigationAction.current;
+              pendingNavigationAction.current = null;
+
+              if (pendingAction) {
+                navigation.dispatch(pendingAction);
+                return;
+              }
+
+              navigation.goBack();
+            },
+          },
+        ],
+      );
+    });
+
+    return unsubscribe;
+  }, [hasUnsavedChanges, isSubmitting, navigation, showSuccess]);
 
   const handleChange = useCallback((field: keyof FormData, value: string) => {
     setFormData((prev) => {
@@ -452,6 +512,7 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
         visible={showSuccess}
         transparent
         animationType="fade"
+        onRequestClose={handleSuccessDismiss}
         statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
