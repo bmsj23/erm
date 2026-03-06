@@ -41,3 +41,5 @@ yarn-error.*
 /android
 
 star.md
+.github
+/doc

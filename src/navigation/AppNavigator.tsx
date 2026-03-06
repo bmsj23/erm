@@ -6,41 +6,36 @@ import {
   DefaultTheme,
   useNavigation,
 } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import {
+  createNativeStackNavigator,
+  NativeStackNavigationProp,
+} from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useJobs } from "../contexts/JobsContext";
 import { fontSize } from "../constants/theme";
+import {
+  JobsStackParamList,
+  RootTabParamList,
+  SavedStackParamList,
+  SharedJobStackParamList,
+} from "./props";
 import JobFinderScreen from "../screens/JobFinder/JobFinderScreen";
 import SavedJobsScreen from "../screens/SavedJobs/SavedJobsScreen";
 import SearchScreen from "../screens/Search/SearchScreen";
 import JobDetailsScreen from "../screens/JobDetails/JobDetailsScreen";
 import ApplicationFormScreen from "../screens/ApplicationForm/ApplicationFormScreen";
-import { Job } from "../types/job";
-
-export type JobsStackParamList = {
-  Find: undefined;
-  Search: undefined;
-  JobDetails: { job: Job; fromSavedJobs?: boolean };
-  ApplicationForm: { job: Job; fromSavedJobs?: boolean };
-};
-
-export type SavedStackParamList = {
-  SavedJobs: undefined;
-  JobDetails: { job: Job; fromSavedJobs?: boolean };
-  ApplicationForm: { job: Job; fromSavedJobs?: boolean };
-};
 
 const JobsStack = createNativeStackNavigator<JobsStackParamList>();
 const SavedStack = createNativeStackNavigator<SavedStackParamList>();
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<RootTabParamList>();
 
 const CloseButton = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<SharedJobStackParamList>>();
   const { colors } = useTheme();
   return (
-    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 8 }}>
+    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 5.5 }}>
       <Ionicons name="close" size={24} color={colors.text} />
     </TouchableOpacity>
   );
@@ -79,8 +74,8 @@ function JobsStackNavigator() {
         name="ApplicationForm"
         component={ApplicationFormScreen}
         options={{
-          presentation: "modal",
           title: "Apply",
+          animation: "fade_from_bottom",
           headerLeft: () => <CloseButton />,
         }}
       />
@@ -116,8 +111,8 @@ function SavedStackNavigator() {
         name="ApplicationForm"
         component={ApplicationFormScreen}
         options={{
-          presentation: "modal",
           title: "Apply",
+          animation: "fade_from_bottom",
           headerLeft: () => <CloseButton />,
         }}
       />

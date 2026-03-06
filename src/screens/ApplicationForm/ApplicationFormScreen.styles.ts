@@ -14,7 +14,7 @@ export const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.background,
     },
     scrollContent: {
-      paddingBottom: spacing.xxxl * 2,
+      paddingBottom: spacing.lg,
     },
     headerSection: {
       paddingHorizontal: spacing.lg,
@@ -151,15 +151,26 @@ export const createStyles = (colors: ThemeColors) =>
       marginTop: spacing.xs,
       fontWeight: fontWeight.medium,
     },
-    charCountContainer: {
+    helperTextRow: {
       flexDirection: "row",
-      justifyContent: "flex-end",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginTop: spacing.xs,
+    },
+    helperTextSpacer: {
+      flex: 1,
+    },
+    errorTextInline: {
+      fontSize: fontSize.xs,
+      color: colors.error,
+      fontWeight: fontWeight.medium,
+      flex: 1,
     },
     charCount: {
       fontSize: fontSize.xs,
       color: colors.textTertiary,
       fontWeight: fontWeight.medium,
+      textAlign: "right",
     },
     charCountError: {
       color: colors.error,
@@ -172,7 +183,7 @@ export const createStyles = (colors: ThemeColors) =>
       marginHorizontal: spacing.lg,
       alignItems: "center",
       justifyContent: "center",
-      marginTop: spacing.lg,
+      marginTop: spacing.sm,
       shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,

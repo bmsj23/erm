@@ -3,6 +3,10 @@ import { Job } from "../types/job";
 
 const API_URL = "https://empllo.com/api/v1";
 
+interface ApiResponse {
+  jobs?: unknown;
+}
+
 interface ApiJob {
   title?: string;
   mainCategory?: string;
@@ -17,11 +21,40 @@ interface ApiJob {
   locations?: string[];
   tags?: string[];
   description?: string;
-  pubDate?: string;
-  expiryDate?: string;
+  pubDate?: string | number;
+  expiryDate?: string | number;
   applicationLink?: string;
   guid?: string;
 }
+
+const normalizeText = (value: unknown): string =>
+  typeof value === "string" ? value.trim() : "";
+
+const normalizeNumber = (value: unknown): number =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0;
+
+const normalizeStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+const normalizeDateValue = (value: unknown): string =>
+  typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : "";
+
+const getJobIdentity = (job: ApiJob): string => {
+  const guid = normalizeText(job.guid);
+
+  if (guid) {
+    return guid;
+  }
+
+  return uuid.v4() as string;
+};
 
 export async function fetchJobs(): Promise<Job[]> {
   const response = await fetch(API_URL);
@@ -30,27 +63,36 @@ export async function fetchJobs(): Promise<Job[]> {
     throw new Error(`Failed to fetch jobs: ${response.status}`);
   }
 
-  const data = await response.json();
-  const jobs: ApiJob[] = data.jobs || [];
+  const data = (await response.json()) as ApiResponse;
 
-  return jobs.map((job) => ({
-    id: uuid.v4() as string,
-    title: job.title || "",
-    mainCategory: job.mainCategory || "",
-    companyName: job.companyName || "",
-    companyLogo: job.companyLogo || "",
-    jobType: job.jobType || "",
-    workModel: job.workModel || "",
-    seniorityLevel: job.seniorityLevel || "",
-    minSalary: job.minSalary || 0,
-    maxSalary: job.maxSalary || 0,
-    currency: job.currency || "USD",
-    locations: job.locations || [],
-    tags: job.tags || [],
-    description: job.description || "",
-    pubDate: job.pubDate || "",
-    expiryDate: job.expiryDate || "",
-    applicationLink: job.applicationLink || "",
-    guid: job.guid || (uuid.v4() as string),
-  }));
+  if (!Array.isArray(data.jobs)) {
+    throw new Error("Invalid jobs response");
+  }
+
+  const jobs = data.jobs as ApiJob[];
+
+  return jobs.map((job) => {
+    const identity = getJobIdentity(job);
+
+    return {
+      id: identity,
+      title: normalizeText(job.title),
+      mainCategory: normalizeText(job.mainCategory),
+      companyName: normalizeText(job.companyName),
+      companyLogo: normalizeText(job.companyLogo),
+      jobType: normalizeText(job.jobType),
+      workModel: normalizeText(job.workModel),
+      seniorityLevel: normalizeText(job.seniorityLevel),
+      minSalary: normalizeNumber(job.minSalary),
+      maxSalary: normalizeNumber(job.maxSalary),
+      currency: normalizeText(job.currency) || "USD",
+      locations: normalizeStringArray(job.locations),
+      tags: normalizeStringArray(job.tags),
+      description: normalizeText(job.description),
+      pubDate: normalizeDateValue(job.pubDate),
+      expiryDate: normalizeDateValue(job.expiryDate),
+      applicationLink: normalizeText(job.applicationLink),
+      guid: identity,
+    };
+  });
 }

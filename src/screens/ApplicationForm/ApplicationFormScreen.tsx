@@ -1,24 +1,31 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
   Modal,
+  LayoutChangeEvent,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { CommonActions } from "@react-navigation/native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
-import { JobsStackParamList } from "../../navigation/AppNavigator";
+import {
+  RootTabParamList,
+  SharedApplicationFormScreenProps,
+} from "../../navigation/props";
 import { createStyles } from "./ApplicationFormScreen.styles";
 
-type Props = NativeStackScreenProps<JobsStackParamList, "ApplicationForm">;
+type Props = SharedApplicationFormScreenProps;
 
 interface FormData {
   name: string;
@@ -40,6 +47,20 @@ interface FieldTouched {
   contactNumber: boolean;
   whyHireYou: boolean;
 }
+
+type FieldKey = keyof FormData;
+
+const sanitizeName = (value: string): string =>
+  value.replace(/\s{2,}/g, " ").replace(/^[\s]+/, "");
+
+const sanitizeEmail = (value: string): string =>
+  value.replace(/\s+/g, "").toLowerCase();
+
+const sanitizeContactNumber = (value: string): string =>
+  value.replace(/\D/g, "").slice(0, 11);
+
+const normalizeEssay = (value: string): string =>
+  value.replace(/\s{2,}/g, " ").trim();
 
 const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const { job } = route.params;
@@ -65,31 +86,54 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const whyHireLength = normalizeEssay(formData.whyHireYou).length;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const fieldPositions = useRef<Record<FieldKey, number>>({
+    name: 0,
+    email: 0,
+    contactNumber: 0,
+    whyHireYou: 0,
+  });
+  const currentScrollY = useRef(0);
 
   const validate = useCallback((data: FormData): FormErrors => {
     const errors: FormErrors = {};
+    const normalizedName = sanitizeName(data.name).trim();
+    const normalizedEmail = sanitizeEmail(data.email);
+    const normalizedContactNumber = sanitizeContactNumber(data.contactNumber);
+    const normalizedWhyHireYou = normalizeEssay(data.whyHireYou);
 
-    if (!data.name.trim()) {
+    if (!normalizedName) {
       errors.name = "Name is required";
-    } else if (!/^[a-zA-Z\s]+$/.test(data.name.trim())) {
-      errors.name = "Name must contain only letters and spaces";
+    } else if (normalizedName.length < 2) {
+      errors.name = "Name must be at least 2 characters";
+    } else if (normalizedName.length > 80) {
+      errors.name = "Name must not exceed 80 characters";
+    } else if (!/^[A-Za-z][A-Za-z\s'.-]*$/.test(normalizedName)) {
+      errors.name = "Name contains invalid characters";
     }
 
-    if (!data.email.trim()) {
+    if (!normalizedEmail) {
       errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+    } else if (normalizedEmail.length > 254) {
+      errors.email = "Email must not exceed 254 characters";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       errors.email = "Please enter a valid email address";
     }
 
-    if (!data.contactNumber.trim()) {
+    if (!normalizedContactNumber) {
       errors.contactNumber = "Contact number is required";
-    } else if (!/^09\d{9}$/.test(data.contactNumber.trim())) {
+    } else if (!/^09\d{9}$/.test(normalizedContactNumber)) {
       errors.contactNumber = "Must start with 09 and be exactly 11 digits";
     }
 
-    if (!data.whyHireYou.trim()) {
+    if (!normalizedWhyHireYou) {
       errors.whyHireYou = "This field is required";
-    } 
+    } else if (normalizedWhyHireYou.length < 50) {
+      errors.whyHireYou = "Please provide at least 50 characters";
+    } else if (normalizedWhyHireYou.length > 1000) {
+      errors.whyHireYou = "Response must not exceed 1000 characters";
+    }
 
     return errors;
   }, []);
@@ -98,7 +142,20 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const isValid = Object.keys(errors).length === 0;
 
   const handleChange = useCallback((field: keyof FormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      switch (field) {
+        case "name":
+          return { ...prev, name: sanitizeName(value) };
+        case "email":
+          return { ...prev, email: sanitizeEmail(value) };
+        case "contactNumber":
+          return { ...prev, contactNumber: sanitizeContactNumber(value) };
+        case "whyHireYou":
+          return { ...prev, whyHireYou: value };
+        default:
+          return prev;
+      }
+    });
   }, []);
 
   const handleBlur = useCallback((field: keyof FieldTouched) => {
@@ -106,12 +163,42 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
     setFocusedField(null);
   }, []);
 
-  const handleFocus = useCallback((field: string) => {
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    currentScrollY.current = event.nativeEvent.contentOffset.y;
+  }, []);
+
+  const handleFieldLayout = useCallback(
+    (field: FieldKey, event: LayoutChangeEvent) => {
+      fieldPositions.current[field] = event.nativeEvent.layout.y;
+    },
+    [],
+  );
+
+  const handleFocus = useCallback((field: FieldKey) => {
     setFocusedField(field);
+    const targetY = Math.max(fieldPositions.current[field] - 24, 0);
+
+    if (targetY === currentScrollY.current) {
+      return;
+    }
+
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: targetY,
+        animated: true,
+      });
+    }, 180);
   }, []);
 
   const handleSubmit = useCallback(async () => {
     Keyboard.dismiss();
+
+    const sanitizedData: FormData = {
+      name: sanitizeName(formData.name).trim(),
+      email: sanitizeEmail(formData.email),
+      contactNumber: sanitizeContactNumber(formData.contactNumber),
+      whyHireYou: normalizeEssay(formData.whyHireYou),
+    };
 
     setTouched({
       name: true,
@@ -120,7 +207,9 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
       whyHireYou: true,
     });
 
-    if (!isValid) return;
+    setFormData(sanitizedData);
+
+    if (Object.keys(validate(sanitizedData)).length > 0) return;
 
     setIsSubmitting(true);
 
@@ -139,20 +228,40 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
       message: "Application submitted successfully",
       type: "success",
     });
-  }, [isValid, showToast]);
+  }, [formData, showToast, validate]);
 
   const handleSuccessDismiss = useCallback(() => {
     setShowSuccess(false);
+    const parentNavigation = navigation.getParent<
+      BottomTabNavigationProp<RootTabParamList>
+    >();
 
-    // pop the native modal and all intermediate screens back to root
-    navigation.popToTop();
-
-    if (fromSavedJobs) {
-      const parent = navigation.getParent();
-      if (parent) {
-        parent.navigate("JobsTab" as never);
+    setTimeout(() => {
+      if (fromSavedJobs) {
+        parentNavigation?.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: "JobsTab",
+                state: {
+                  routes: [{ name: "Find" }],
+                },
+              },
+              {
+                name: "SavedTab",
+                state: {
+                  routes: [{ name: "SavedJobs" }],
+                },
+              },
+            ],
+          }),
+        );
+        return;
       }
-    }
+
+      navigation.popToTop();
+    }, 220);
   }, [fromSavedJobs, navigation]);
 
   const getInputStyle = (field: keyof FormData) => [
@@ -167,9 +276,12 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}>
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
+        keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}>
 
         <View style={styles.headerSection}>
           <Text style={styles.headerTitle}>Apply for this role</Text>
@@ -204,7 +316,9 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         <View style={styles.formSection}>
-          <View style={styles.fieldContainer}>
+          <View
+            style={styles.fieldContainer}
+            onLayout={(event) => handleFieldLayout("name", event)}>
             <Text style={styles.label}>
               Full Name <Text style={styles.required}>*</Text>
             </Text>
@@ -217,13 +331,17 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
               onBlur={() => handleBlur("name")}
               onFocus={() => handleFocus("name")}
               autoCapitalize="words"
+              maxLength={80}
+              textContentType="name"
             />
             {touched.name && errors.name ? (
               <Text style={styles.errorText}>{errors.name}</Text>
             ) : null}
           </View>
 
-          <View style={styles.fieldContainer}>
+          <View
+            style={styles.fieldContainer}
+            onLayout={(event) => handleFieldLayout("email", event)}>
             <Text style={styles.label}>
               Email Address <Text style={styles.required}>*</Text>
             </Text>
@@ -238,13 +356,17 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={254}
+              textContentType="emailAddress"
             />
             {touched.email && errors.email ? (
               <Text style={styles.errorText}>{errors.email}</Text>
             ) : null}
           </View>
 
-          <View style={styles.fieldContainer}>
+          <View
+            style={styles.fieldContainer}
+            onLayout={(event) => handleFieldLayout("contactNumber", event)}>
             <Text style={styles.label}>
               Contact Number <Text style={styles.required}>*</Text>
             </Text>
@@ -258,13 +380,16 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
               onFocus={() => handleFocus("contactNumber")}
               keyboardType="phone-pad"
               maxLength={11}
+              textContentType="telephoneNumber"
             />
             {touched.contactNumber && errors.contactNumber ? (
               <Text style={styles.errorText}>{errors.contactNumber}</Text>
             ) : null}
           </View>
 
-          <View style={styles.fieldContainer}>
+          <View
+            style={styles.fieldContainer}
+            onLayout={(event) => handleFieldLayout("whyHireYou", event)}>
             <Text style={styles.label}>
               Why should we hire you? <Text style={styles.required}>*</Text>
             </Text>
@@ -278,21 +403,24 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
               onFocus={() => handleFocus("whyHireYou")}
               multiline
               numberOfLines={6}
+              maxLength={1000}
             />
-            <View style={styles.charCountContainer}>
+            <View style={styles.helperTextRow}>
+              {touched.whyHireYou && errors.whyHireYou ? (
+                <Text style={styles.errorTextInline}>{errors.whyHireYou}</Text>
+              ) : (
+                <View style={styles.helperTextSpacer} />
+              )}
               <Text
                 style={[
                   styles.charCount,
-                  formData.whyHireYou.trim().length < 50 &&
+                  whyHireLength < 50 &&
                     touched.whyHireYou &&
                     styles.charCountError,
                 ]}>
-                {formData.whyHireYou.trim().length}/50 characters minimum
+                {whyHireLength}/50 characters minimum
               </Text>
             </View>
-            {touched.whyHireYou && errors.whyHireYou ? (
-              <Text style={styles.errorText}>{errors.whyHireYou}</Text>
-            ) : null}
           </View>
         </View>
 
@@ -303,7 +431,7 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
           ]}
           onPress={handleSubmit}
           activeOpacity={0.8}
-          disabled={isSubmitting}>
+          disabled={!isValid || isSubmitting}>
           <Text style={styles.submitButtonText}>
             {isSubmitting ? "Submitting..." : "Submit Application"}
           </Text>

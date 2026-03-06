@@ -23,8 +23,9 @@ const JobCard: React.FC<JobCardProps> = React.memo(
     const p = getPalette(isDarkMode);
     const styles = useMemo(() => createCardStyles(p, isDarkMode), [p, isDarkMode]);
     const [imgError, setImgError] = useState(false);
+    const jobIdentity = job.guid || job.id;
 
-    const saved = isJobSaved(job.guid);
+    const saved = isJobSaved(jobIdentity);
     const location = job.locations?.[0] ?? "";
     const visibleTags = (job.tags ?? []).slice(0, 3);
     const salary = formatSalary(job.minSalary, job.maxSalary, job.currency || "USD");
@@ -36,13 +37,13 @@ const JobCard: React.FC<JobCardProps> = React.memo(
 
     const handleToggleSave = useCallback(() => {
       if (saved) {
-        removeJob(job.guid);
+        removeJob(jobIdentity);
         showToast({ message: "Job removed from saved jobs", type: "info" });
       } else {
         saveJob(job);
         showToast({ message: "Job saved", type: "success" });
       }
-    }, [saved, job, removeJob, saveJob, showToast]);
+    }, [saved, job, jobIdentity, removeJob, saveJob, showToast]);
 
     const confirmDelete = useCallback(() => {
       Alert.alert(
@@ -57,26 +58,39 @@ const JobCard: React.FC<JobCardProps> = React.memo(
 
     return (
       <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.96}>
-        {/* bookmark / delete icon positioned relative to full card */}
         {onDelete ? (
           <TouchableOpacity
-            style={styles.bookmarkButton}
+            style={[styles.topActionButton, styles.removeActionButton]}
             onPress={confirmDelete}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            activeOpacity={0.8}>
+            <Ionicons name="trash-outline" size={16} color="#DC2626" />
+            <Text
+              style={[styles.actionButtonText, styles.removeActionButtonText]}>
+              Remove Job
+            </Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={styles.bookmarkButton}
+            style={[
+              styles.topActionButton,
+              saved ? styles.savedActionButton : styles.saveActionButton,
+            ]}
             onPress={handleToggleSave}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            activeOpacity={0.8}>
             <Ionicons
               name={saved ? "bookmark" : "bookmark-outline"}
-              size={20}
-              color={saved ? p.deepGreen : p.cloudGray}
+              size={16}
+              color={saved ? p.deepGreen : p.slate}
             />
+            <Text
+              style={[
+                styles.actionButtonText,
+                saved
+                  ? styles.savedActionButtonText
+                  : styles.saveActionButtonText,
+              ]}>
+              {saved ? "Saved" : "Save"}
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -104,19 +118,21 @@ const JobCard: React.FC<JobCardProps> = React.memo(
         </View>
 
         <View style={styles.bottomSection}>
-          {job.workModel ? (
-            <View style={styles.workModelChip}>
-              <Text style={styles.workModelText}>{job.workModel}</Text>
-            </View>
-          ) : null}
-          <Text style={styles.jobTitle} numberOfLines={2}>
-            {job.title}
-          </Text>
-          {metaParts.length > 0 ? (
-            <Text style={styles.metaText} numberOfLines={1}>
-              {metaParts.join("  \u00b7  ")}
+          <View style={styles.contentSection}>
+            {job.workModel ? (
+              <View style={styles.workModelChip}>
+                <Text style={styles.workModelText}>{job.workModel}</Text>
+              </View>
+            ) : null}
+            <Text style={styles.jobTitle} numberOfLines={2}>
+              {job.title}
             </Text>
-          ) : null}
+            {metaParts.length > 0 ? (
+              <Text style={styles.metaText} numberOfLines={1}>
+                {metaParts.join("  \u00b7  ")}
+              </Text>
+            ) : null}
+          </View>
 
           <View style={styles.footerRow}>
             {visibleTags.length > 0 ? (
@@ -128,14 +144,17 @@ const JobCard: React.FC<JobCardProps> = React.memo(
                 ))}
               </View>
             ) : <View />}
-            {hasSalary ? (
-              <View style={styles.salaryColumn}>
-                <Text style={styles.salaryText}>{salary}</Text>
-                <Text style={styles.salaryInterval}>/ year</Text>
-              </View>
-            ) : (
-              <Text style={styles.salaryUndisclosed}>Salary undisclosed</Text>
-            )}
+
+            <View style={styles.salaryRow}>
+              {hasSalary ? (
+                <View style={styles.salaryColumn}>
+                  <Text style={styles.salaryText}>{salary}</Text>
+                  <Text style={styles.salaryInterval}>/ year</Text>
+                </View>
+              ) : (
+                <Text style={styles.salaryUndisclosed}>Salary undisclosed</Text>
+              )}
+            </View>
           </View>
         </View>
       </TouchableOpacity>

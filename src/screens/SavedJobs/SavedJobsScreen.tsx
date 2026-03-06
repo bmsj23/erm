@@ -1,12 +1,11 @@
 import React, { useMemo, useCallback, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, LayoutAnimation, Platform, UIManager, RefreshControl, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobs } from "../../contexts/JobsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
-import { SavedStackParamList } from "../../navigation/AppNavigator";
+import { SavedStackScreenProps } from "../../navigation/props";
 import EmptyState from "../../components/EmptyState";
 import JobCard from "../../components/JobCard/JobCard";
 import { Job } from "../../types/job";
@@ -17,7 +16,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-type Props = NativeStackScreenProps<SavedStackParamList, "SavedJobs">;
+type Props = SavedStackScreenProps<"SavedJobs">;
 
 const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
   const { savedJobs, removeJob, removeAllJobs, loadSavedJobs } = useJobs();
@@ -63,7 +62,7 @@ const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
   const handleRemove = useCallback(
     (job: Job) => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      removeJob(job.guid);
+      removeJob(job.guid || job.id);
       showToast({ message: "Job removed", type: "info" });
     },
     [removeJob, showToast],
@@ -80,7 +79,7 @@ const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
     [handleJobPress, handleRemove],
   );
 
-  const keyExtractor = useCallback((item: Job) => item.id, []);
+  const keyExtractor = useCallback((item: Job) => item.guid || item.id, []);
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>

@@ -4,6 +4,7 @@ import { PaletteType, LIGHT_PALETTE } from "../../screens/JobFinder/JobFinderScr
 export const createCardStyles = (p: PaletteType = LIGHT_PALETTE, isDark: boolean = false) =>
   StyleSheet.create({
     card: {
+      height: 256,
       borderRadius: 16,
       overflow: "hidden",
       backgroundColor: p.white,
@@ -17,6 +18,8 @@ export const createCardStyles = (p: PaletteType = LIGHT_PALETTE, isDark: boolean
     topSection: {
       backgroundColor: isDark ? p.hairline : "#FFFFFF",
       padding: 16,
+      paddingRight: 124,
+      minHeight: 88,
       flexDirection: "row",
       alignItems: "flex-start",
     },
@@ -55,19 +58,16 @@ export const createCardStyles = (p: PaletteType = LIGHT_PALETTE, isDark: boolean
       color: p.charcoal,
       flex: 1,
     },
-    bookmarkButton: {
-      position: "absolute",
-      top: 3,
-      right: 2,
-      zIndex: 10,
-      width: 44,
-      height: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     bottomSection: {
       backgroundColor: isDark ? p.white : "#FFFFFF",
       padding: 16,
+      paddingTop: 12,
+      paddingBottom: 22,
+      flex: 1,
+      justifyContent: "space-between",
+    },
+    contentSection: {
+      minHeight: 72,
     },
     workModelChip: {
       alignSelf: "flex-start",
@@ -98,17 +98,21 @@ export const createCardStyles = (p: PaletteType = LIGHT_PALETTE, isDark: boolean
       marginTop: 4,
     },
     footerRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginTop: 16,
+      minHeight: 72,
+      justifyContent: "flex-end",
     },
     tagsRow: {
       flexDirection: "row",
-      flexWrap: "wrap",
+      flexWrap: "nowrap",
       gap: 6,
-      flex: 1,
-      marginRight: 12,
+      flex: 0,
+      maxHeight: 28,
+      overflow: "hidden",
+    },
+    salaryRow: {
+      marginTop: 22,
+      paddingBottom: 4,
+      alignItems: "flex-end",
     },
     tag: {
       backgroundColor: isDark ? p.mintGreen : "#E8F2EC",
@@ -129,16 +133,59 @@ export const createCardStyles = (p: PaletteType = LIGHT_PALETTE, isDark: boolean
       fontWeight: "800",
       color: p.charcoal,
       letterSpacing: -0.3,
+      textAlign: "right",
     },
     salaryInterval: {
       fontSize: 11,
       fontWeight: "400",
       color: p.cloudGray,
       marginTop: 1,
+      textAlign: "right",
     },
     salaryUndisclosed: {
       fontSize: 13,
       fontWeight: "600",
       color: isDark ? "#AAAAAA" : "#333333",
+      textAlign: "right",
+    },
+    topActionButton: {
+      position: "absolute",
+      top: 14,
+      right: 14,
+      zIndex: 10,
+      minHeight: 38,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      borderWidth: 1,
+    },
+    saveActionButton: {
+      backgroundColor: isDark ? p.white : "#FFFFFF",
+      borderColor: p.hairline,
+    },
+    savedActionButton: {
+      backgroundColor: p.mintGreen,
+      borderColor: p.deepGreen,
+    },
+    removeActionButton: {
+      backgroundColor: isDark ? p.white : "#FFFFFF",
+      borderColor: "#FCA5A5",
+    },
+    actionButtonText: {
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    saveActionButtonText: {
+      color: p.slate,
+    },
+    savedActionButtonText: {
+      color: p.deepGreen,
+    },
+    removeActionButtonText: {
+      color: "#DC2626",
     },
   });

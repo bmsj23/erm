@@ -2,17 +2,16 @@ import React, { useMemo } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobs } from "../../contexts/JobsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
-import { JobsStackParamList } from "../../navigation/AppNavigator";
+import { SharedJobDetailsScreenProps } from "../../navigation/props";
 import { createStyles } from "./JobDetailsScreen.styles";
 import { getPalette } from "../JobFinder/JobFinderScreen.styles";
 
-type Props = NativeStackScreenProps<JobsStackParamList, "JobDetails">;
+type Props = SharedJobDetailsScreenProps;
 
 const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { job } = route.params;
@@ -25,7 +24,8 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const effectiveBottomInset = tabBarHeight > 0 ? 2 : (insets.bottom > 0 ? insets.bottom : 6);
   const p = getPalette(isDarkMode);
   const styles = useMemo(() => createStyles(p, effectiveBottomInset), [p, effectiveBottomInset]);
-  const saved = isJobSaved(job.guid);
+  const jobIdentity = job.guid || job.id;
+  const saved = isJobSaved(jobIdentity);
 
   const formatSalary = (min: number, max: number, currency: string) => {
     if (!min && !max) return "Undisclosed";
@@ -40,7 +40,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSave = () => {
     if (saved) {
-      removeJob(job.guid);
+      removeJob(jobIdentity);
       showToast({ message: "Job removed from saved jobs", type: "info" });
     } else {
       saveJob(job);
@@ -107,7 +107,6 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const { description, requirements } = splitDescriptionAndRequirements(parsedDescription);
-  const requirementItems = requirements.length > 0 ? requirements : job.tags;
 
   // converts a string to title case for uniform chip casing
   const toTitleCase = (str: string) =>
@@ -204,6 +203,18 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.requirementsTitle}>Description</Text>
             <Text style={styles.descriptionText}>{description}</Text>
           </View>
+
+          {requirements.length > 0 ? (
+            <View style={styles.descriptionContainerSecondary}>
+              <Text style={styles.requirementsTitle}>Requirements</Text>
+              {requirements.map((item, index) => (
+                <View key={`${item}-${index}`} style={styles.requirementRow}>
+                  <Ionicons name="checkmark-circle" size={18} color={p.deepGreen} />
+                  <Text style={styles.requirementText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 

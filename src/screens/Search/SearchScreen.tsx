@@ -13,16 +13,18 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useJobs } from "../../contexts/JobsContext";
-import { JobsStackParamList } from "../../navigation/AppNavigator";
+import { JobsStackScreenProps } from "../../navigation/props";
 import JobCard from "../../components/JobCard/JobCard";
 import EmptyState from "../../components/EmptyState";
 import { Job } from "../../types/job";
 import { createStyles } from "./SearchScreen.styles";
 
-type Props = NativeStackScreenProps<JobsStackParamList, "Search">;
+type Props = JobsStackScreenProps<"Search">;
+
+const normalizeSearchValue = (value: string): string =>
+  value.trim().toLowerCase().replace(/\s+/g, " ");
 
 const SearchScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
@@ -34,21 +36,33 @@ const SearchScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(query);
+      setDebouncedQuery(normalizeSearchValue(query));
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 
   const filteredJobs = useMemo(() => {
     if (!debouncedQuery.trim()) return [];
-    const q = debouncedQuery.toLowerCase().trim();
+
+    const q = normalizeSearchValue(debouncedQuery);
+
     return jobs.filter(
-      (job) =>
-        job.title.toLowerCase().includes(q) ||
-        job.companyName.toLowerCase().includes(q) ||
-        job.mainCategory.toLowerCase().includes(q) ||
-        job.locations.some((loc) => loc.toLowerCase().includes(q)) ||
-        job.tags.some((tag) => tag.toLowerCase().includes(q)),
+      (job) => {
+        const searchableValues = [
+          job.title,
+          job.companyName,
+          job.mainCategory,
+          job.jobType,
+          job.workModel,
+          job.seniorityLevel,
+          ...job.locations,
+          ...job.tags,
+        ];
+
+        return searchableValues.some((value) =>
+          normalizeSearchValue(value).includes(q),
+        );
+      },
     );
   }, [jobs, debouncedQuery]);
 
@@ -72,7 +86,7 @@ const SearchScreen: React.FC<Props> = ({ navigation }) => {
     [handleJobPress],
   );
 
-  const keyExtractor = useCallback((item: Job) => item.id, []);
+  const keyExtractor = useCallback((item: Job) => item.guid || item.id, []);
 
   return (
     <View style={styles.container}>

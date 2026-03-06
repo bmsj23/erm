@@ -9,6 +9,9 @@ import { Job } from "../types/job";
 import { fetchJobs } from "../utils/api";
 import { StorageService } from "../utils/storage";
 
+const getJobIdentity = (job: Pick<Job, "id" | "guid">): string =>
+  job.guid || job.id;
+
 interface JobsContextType {
   jobs: Job[];
   savedJobs: Job[];
@@ -16,9 +19,9 @@ interface JobsContextType {
   error: string | null;
   refreshJobs: () => Promise<void>;
   saveJob: (job: Job) => void;
-  removeJob: (guid: string) => void;
+  removeJob: (jobId: string) => void;
   removeAllJobs: () => void;
-  isJobSaved: (guid: string) => boolean;
+  isJobSaved: (jobId: string) => boolean;
   loadSavedJobs: () => Promise<void>;
 }
 
@@ -70,18 +73,22 @@ export const JobsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const saveJob = useCallback((job: Job) => {
     setSavedJobs((prev) => {
-      const alreadySaved = prev.some((saved) => saved.guid === job.guid);
+      const identity = getJobIdentity(job);
+      const alreadySaved = prev.some(
+        (saved) => getJobIdentity(saved) === identity,
+      );
+
       if (alreadySaved) return prev;
-      // prepend so the latest saved job appears first
+
       const updated = [job, ...prev];
       StorageService.saveSavedJobs(updated);
       return updated;
     });
   }, []);
 
-  const removeJob = useCallback((guid: string) => {
+  const removeJob = useCallback((jobId: string) => {
     setSavedJobs((prev) => {
-      const updated = prev.filter((job) => job.guid !== guid);
+      const updated = prev.filter((job) => getJobIdentity(job) !== jobId);
       StorageService.saveSavedJobs(updated);
       return updated;
     });
@@ -93,7 +100,8 @@ export const JobsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const isJobSaved = useCallback(
-    (guid: string) => savedJobs.some((job) => job.guid === guid),
+    (jobId: string) =>
+      savedJobs.some((job) => getJobIdentity(job) === jobId),
     [savedJobs],
   );
 

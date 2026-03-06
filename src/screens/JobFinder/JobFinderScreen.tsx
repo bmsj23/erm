@@ -6,15 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  Image,
 } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useScrollToTop } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useJobs } from "../../contexts/JobsContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { JobsStackParamList } from "../../navigation/AppNavigator";
+import { JobsStackScreenProps } from "../../navigation/props";
 import SkeletonLoading from "../../components/SkeletonLoading";
 import EmptyState from "../../components/EmptyState";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -25,7 +23,7 @@ import {
 } from "./JobFinderScreen.styles";
 import JobCard from "../../components/JobCard/JobCard";
 
-type Props = NativeStackScreenProps<JobsStackParamList, "Find">;
+type Props = JobsStackScreenProps<"Find">;
 
 type FilterKey = "all" | "remote" | "hybrid" | "onsite";
 
@@ -95,7 +93,7 @@ const JobFinderScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [jobs, activeFilter]);
 
-  const keyExtractor = useCallback((item: Job) => item.id, []);
+  const keyExtractor = useCallback((item: Job) => item.guid || item.id, []);
 
   const renderItem = useCallback(
     ({ item }: { item: Job }) => (
