@@ -16,7 +16,7 @@ export const createCardStyles = (p: PaletteType = LIGHT_PALETTE, isDark: boolean
       position: "relative",
     },
     topSection: {
-      backgroundColor: isDark ? p.hairline : "#FFFFFF",
+      backgroundColor: isDark ? p.white : "#FFFFFF",
       padding: 16,
       paddingRight: 124,
       minHeight: 88,

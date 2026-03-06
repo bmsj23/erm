@@ -176,6 +176,16 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleFocus = useCallback((field: FieldKey) => {
     setFocusedField(field);
+
+    if (field === "whyHireYou") {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({
+          animated: true,
+        });
+      }, 220);
+      return;
+    }
+
     const targetY = Math.max(fieldPositions.current[field] - 24, 0);
 
     if (targetY === currentScrollY.current) {
@@ -260,7 +270,7 @@ const ApplicationFormScreen: React.FC<Props> = ({ route, navigation }) => {
         return;
       }
 
-      navigation.popToTop();
+      navigation.goBack();
     }, 220);
   }, [fromSavedJobs, navigation]);
 

@@ -75,7 +75,7 @@ function JobsStackNavigator() {
         component={ApplicationFormScreen}
         options={{
           title: "Apply",
-          animation: "fade_from_bottom",
+          animation: "none",
           headerLeft: () => <CloseButton />,
         }}
       />
@@ -112,7 +112,7 @@ function SavedStackNavigator() {
         component={ApplicationFormScreen}
         options={{
           title: "Apply",
-          animation: "fade_from_bottom",
+          animation: "none",
           headerLeft: () => <CloseButton />,
         }}
       />
